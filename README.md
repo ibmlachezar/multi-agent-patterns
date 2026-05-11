@@ -1,0 +1,212 @@
+# ♟ Multi-Agent Patterns with A2A and Google ADK
+
+**5 production patterns for building multi-agent systems.**
+Real code. Real A2A protocol. Real Google ADK.
+
+Learning in public — built while studying the patterns from Google Cloud Next '26.
+
+---
+
+## The 5 patterns
+
+| # | Pattern | What it demonstrates |
+|---|---------|---------------------|
+| 1 | [Agent Card Discovery](#pattern-1) | Agents discover each other via published Agent Cards |
+| 2 | [Delegated Specialization](#pattern-2) | Coordinator delegates to specialist agents across teams |
+| 3 | [Tool Bridge with MCP](#pattern-3) | Agents access external tools via Model Context Protocol |
+| 4 | [Cross-Org Federation](#pattern-4) | Agents collaborate across organizational boundaries |
+| 5 | [Ambient Event Mesh](#pattern-5) | Agents react to event streams continuously |
+
+---
+
+## Setup
+
+**Requirements:** Python 3.12+, Node.js (for Pattern 3 MCP)
+
+```bash
+# Clone the repo
+git clone https://github.com/ibmlachezar/multi-agent-patterns
+cd multi-agent-patterns
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up your API key
+cp .env.example .env
+# Edit .env and add your GOOGLE_API_KEY
+# Get one free at: https://aistudio.google.com/apikey
+```
+
+---
+
+## Pattern 1: Agent Card Discovery {#pattern-1}
+
+Every A2A agent publishes a JSON Agent Card at `/.well-known/agent.json`.
+The coordinator discovers specialist agents by fetching their cards —
+like OpenAPI specs, but designed for agent-to-agent communication.
+
+```bash
+cd pattern_01_agent_card_discovery
+
+# Terminal 1: Start financial specialist (port 8001)
+cd specialist_agents/financial_agent && python server.py
+
+# Terminal 2: Start support specialist (port 8002)
+cd specialist_agents/support_agent && python server.py
+
+# Terminal 3: Check the auto-generated Agent Card
+curl http://localhost:8001/.well-known/agent.json
+
+# Terminal 4: Run the coordinator
+cd coordinator && python agent.py
+```
+
+**What to look for:** The Agent Card JSON at `/.well-known/agent.json` — this is what
+enables discovery. The coordinator never needs to know the specialist's internals.
+
+---
+
+## Pattern 2: Delegated Specialization {#pattern-2}
+
+A coordinator hands off tasks to specialist agents owned by different teams.
+Different language, framework, deploy schedule — doesn't matter.
+They speak A2A.
+
+```bash
+cd pattern_02_delegated_specialization
+
+# Start all 5 specialists (each on their own port)
+cd specialists/identity_agent && python server.py    # port 8011
+cd specialists/credit_agent && python server.py      # port 8012
+
+# Run the coordinator (handles the full onboarding flow)
+cd coordinator && python agent.py
+```
+
+**What to look for:** The coordinator executes a 5-step onboarding flow by delegating
+to each specialist in sequence — without knowing their implementations.
+
+---
+
+## Pattern 3: Tool Bridge with MCP {#pattern-3}
+
+MCP (Model Context Protocol) turns any external tool into an agent-accessible
+resource through a single protocol layer. 60+ ready integrations.
+
+```bash
+cd pattern_03_tool_bridge_mcp
+
+# Requires Node.js for the MCP filesystem server
+python agent.py
+```
+
+**What to look for:** The agent uses `MCPToolset` to connect to the filesystem MCP
+server. In production, swap for GitHub, Notion, Stripe, or any of 60+ integrations.
+
+---
+
+## Pattern 4: Cross-Organization Federation {#pattern-4}
+
+Two organizations collaborate via A2A while each maintains its own
+governance, security model, and data boundaries.
+
+```bash
+cd pattern_04_cross_org_federation
+
+# Terminal 1: Start Org B's partner agents
+python org_b/servers.py
+
+# Terminal 2: Run Org A's coordinator
+python org_a/coordinator.py
+```
+
+**What to look for:** Org A's `validate_federation_request` tool enforces governance
+before any data crosses the organizational boundary.
+
+---
+
+## Pattern 5: Ambient Event Mesh {#pattern-5}
+
+Agents listen on event streams and react continuously in the background.
+Register a new specialist and the mesh self-organizes around it.
+
+```bash
+cd pattern_05_ambient_event_mesh
+
+# Terminal 1: Start specialist agents
+python agents/servers.py
+
+# Terminal 2: Run the event mesh (processes 5 simulated events)
+python event_mesh.py
+```
+
+**What to look for:** Events arriving on the simulated Pub/Sub stream get classified
+by the router and delegated to the right specialist — all automatically.
+
+---
+
+## How A2A works (the short version)
+
+```
+1. Build an ADK agent
+2. Call to_a2a(agent) → gets an ASGI app
+3. Serve it with uvicorn → it exposes:
+   - /.well-known/agent.json  (the Agent Card)
+   - /run                      (the A2A endpoint)
+4. Other agents use RemoteA2aAgent(url="...") to connect
+5. That's it. The rest is protocol.
+```
+
+---
+
+## Key concepts
+
+**Agent Card** — JSON document at `/.well-known/agent.json`. Auto-generated by `to_a2a()`.
+Contains the agent's capabilities, auth requirements, and rate limits.
+
+**A2A Protocol** — Open standard for agent-to-agent communication. Language-agnostic.
+An agent in Python can talk to one in Go, Java, or TypeScript.
+
+**MCP** — Model Context Protocol. Turns external tools into agent-accessible resources.
+One protocol for GitHub, databases, APIs, and 60+ other integrations.
+
+**RemoteA2aAgent** — ADK class for consuming remote A2A agents. Fetches the Agent Card
+automatically and handles all protocol-level communication.
+
+---
+
+## What's next
+
+Working through each pattern in more depth. Will update this repo as I learn more.
+
+- [ ] Pattern 1: Add authentication to Agent Cards
+- [ ] Pattern 3: Swap filesystem MCP for GitHub MCP
+- [ ] Pattern 5: Connect to real Google Cloud Pub/Sub
+- [ ] All patterns: Add Agent Observability tracing
+
+---
+
+## Built by
+
+**Lachezar Atanasov** — Head of AI Product, AI startup founder, advisor to multiple AI companies.
+Learning A2A and multi-agent systems in public.
+
+→ [lachezaratanasov.com](https://lachezaratanasov.com)
+→ [LinkedIn](https://www.linkedin.com/in/lachezar-atanasov198/)
+
+---
+
+## References
+
+- [Google ADK Documentation](https://google.github.io/adk-docs/)
+- [A2A Protocol Spec](https://google.github.io/adk-docs/a2a/)
+- [A2A GitHub](https://github.com/google/A2A)
+- [MCP Tools in ADK](https://google.github.io/adk-docs/tools-custom/mcp-tools/)
+
+## License
+
+MIT
