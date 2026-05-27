@@ -11,8 +11,8 @@ Built while studying the patterns from Google Cloud Next '26.
 
 | # | Pattern | What it demonstrates |
 |---|---------|---------------------|
-| 1 | Agent Card Discovery | Agents discover each other via published Agent Cards |
-| 2 | Delegated Specialization | Coordinator delegates to specialist agents across teams |
+| 1 | Agent Card Discovery | Agents discover each other via published Agent Cards ||
+| 2 | Delegated Specialization | Coordinator delegates to specialist agents across teams ||
 | 3 | Tool Bridge with MCP | Agents access external tools via Model Context Protocol |
 | 4 | Cross-Org Federation | Agents collaborate across organizational boundaries |
 | 5 | Ambient Event Mesh | Agents react to event streams continuously |
